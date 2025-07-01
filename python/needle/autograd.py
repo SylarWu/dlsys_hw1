@@ -1,7 +1,7 @@
 """Core data structures."""
 import needle
 from .backend_numpy import Device, cpu, all_devices
-from typing import List, Optional, NamedTuple, Tuple, Union
+from typing import List, Set, Optional, NamedTuple, Tuple, Union
 from collections import namedtuple
 import numpy
 
@@ -393,14 +393,58 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     sort.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    is_recursive = False
+
+    if is_recursive:
+        return topo_sort_dfs_recursive(node_list)
+    else:
+        return topo_sort_lfs_iterative(node_list)
     ### END YOUR SOLUTION
 
 
-def topo_sort_dfs(node, visited, topo_order):
+def topo_sort_lfs_iterative(node_list: List[Value]) -> List[Value]:
+    visited = set()
+    topo_order = list()
+    stack = list()
+    for start_node in node_list:
+        if start_node in visited:
+            continue
+        stack.append((start_node, False))
+        while len(stack) > 0:
+            node, processed = stack.pop()
+            if processed:
+                topo_order.append(node)
+            else:
+                if node in visited:
+                    continue
+
+                stack.append((node, True))
+                visited.add(node)
+                for next_node in node.inputs[::-1]:
+                    stack.append((next_node, False))
+    return topo_order
+
+
+def topo_sort_dfs_recursive(node_list: List[Value]) -> List[Value]:
+    visited = set()
+    topo_order = list()
+    for node in node_list:
+        if node not in visited:
+            inner_topo_sort_dfs_recursive(node, visited, topo_order)
+    return topo_order
+
+
+def inner_topo_sort_dfs_recursive(node: Value, visited: Set[Value], topo_order: List[Value]):
     """Post-order DFS"""
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    if node in visited:
+        return
+
+    visited.add(node)
+
+    for next_node in node.inputs:
+        inner_topo_sort_dfs_recursive(next_node, visited, topo_order)
+    topo_order.append(node)
     ### END YOUR SOLUTION
 
 
