@@ -76,7 +76,7 @@ class EWisePow(TensorOp):
         ### BEGIN YOUR SOLUTION
         return a ** b
         ### END YOUR SOLUTION
-        
+
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         a, b = node.inputs
@@ -153,17 +153,14 @@ class Transpose(TensorOp):
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        axes = list(range(a.ndim))
         if self.axes is None:
-            axes[-1], axes[-2] = axes[-2], axes[-1]
-        else:
-            axes[self.axes[0]], axes[self.axes[1]] = axes[self.axes[1]], axes[self.axes[0]]
-        return array_api.transpose(a, axes=axes)
+            return array_api.swapaxes(a, -2, -1)
+        return array_api.swapaxes(a, self.axes[0], self.axes[1])
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return transpose(out_grad, self.axes)
         ### END YOUR SOLUTION
 
 
@@ -182,7 +179,7 @@ class Reshape(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return reshape(out_grad, self.shape[::-1])
         ### END YOUR SOLUTION
 
 
