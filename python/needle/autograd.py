@@ -1,7 +1,7 @@
 """Core data structures."""
 import needle
 from .backend_numpy import Device, cpu, all_devices
-from typing import List, Set, Optional, NamedTuple, Tuple, Union
+from typing import List, Set, Optional, NamedTuple, Tuple, Union, Dict
 from collections import namedtuple
 import numpy
 
@@ -380,7 +380,25 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
 
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    for cur_node in reverse_topo_order:
+        # sum current node gradient which is corresponding to loss
+        cur_node_grad = sum_node_list(node_to_output_grads_list[cur_node])
+        # if required gradient: then cur_node.gradient = cur_node_grad
+        if cur_node.requires_grad:
+            cur_node.grad = cur_node_grad
+
+        # if current_node is leaf which has no inputs to operate current_node calculation result, then continue
+        if cur_node.is_leaf():
+            continue
+
+        # calculate current node to inputs gradient which is based on operation's gradient method
+        inputs_grad = cur_node.op.gradient_as_tuple(cur_node_grad, cur_node)
+
+        # now we know current node corresponding input_node and matching input_node's gradient
+        for node_in, node_in_grad in zip(cur_node.inputs, inputs_grad):
+            if node_in not in node_to_output_grads_list:
+                node_to_output_grads_list[node_in] = []
+            node_to_output_grads_list[node_in].append(node_in_grad)
     ### END YOUR SOLUTION
 
 
