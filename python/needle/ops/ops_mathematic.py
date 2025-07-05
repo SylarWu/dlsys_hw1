@@ -327,7 +327,9 @@ class ReLU(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        a, = node.inputs
+        mask = Tensor(array_api.where(a.realize_cached_data() > 0, 1, 0))
+        return multiply(out_grad, mask)
         ### END YOUR SOLUTION
 
 

@@ -49,7 +49,7 @@ def parse_mnist(image_filesname, label_filename):
     ### END YOUR SOLUTION
 
 
-def softmax_loss(Z, y_one_hot):
+def softmax_loss(Z, y_one_hot) -> ndl.Tensor:
     """Return softmax loss.  Note that for the purposes of this assignment,
     you don't need to worry about "nicely" scaling the numerical properties
     of the log-sum-exp computation, but can just compute this directly.
@@ -97,9 +97,36 @@ def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
             W1: ndl.Tensor[np.float32]
             W2: ndl.Tensor[np.float32]
     """
-
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    def to_onehot(indexes: np.ndarray, batch_size: int, num_classes: int):
+        ret = np.zeros((batch_size, num_classes))
+        ret[np.arange(batch_size), indexes] = 1
+        return ret
+    from needle.ops import matmul, relu
+    assert X.shape[0] == y.shape[0]
+    num_examples = X.shape[0]
+    num_classes = np.max(y) + 1
+    for begin_index in range(0, num_examples, batch):
+        # calc index
+        cur_batch_size = min(batch, num_examples - begin_index)
+
+        # transfer input x
+        x_batch = ndl.Tensor(X[begin_index: begin_index + cur_batch_size])
+        y_batch = ndl.Tensor(
+            to_onehot(y[begin_index: begin_index + cur_batch_size], cur_batch_size, num_classes)
+        )
+
+        # forward to z
+        z_batch = matmul(relu(matmul(x_batch, W1)), W2)
+
+        # calc batch loss & backward propagation
+        batch_loss = softmax_loss(z_batch, y_batch)
+        batch_loss.backward()
+
+        # update gradients
+        W1.data -= lr * ndl.Tensor(W1.grad.numpy().astype(np.float32))
+        W2.data -= lr * ndl.Tensor(W2.grad.numpy().astype(np.float32))
+    return W1, W2
     ### END YOUR SOLUTION
 
 
