@@ -33,7 +33,19 @@ def parse_mnist(image_filesname, label_filename):
                 for MNIST will contain the values 0-9.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    with gzip.open(image_filesname, 'rb') as image_file:
+        data_magic, data_nums, data_rows, data_cols = struct.unpack('>IIII', image_file.read(16))
+        print(f"image data meta info: Magic:{data_magic}, Nums:{data_nums}, Rows:{data_rows}, Cols:{data_cols}")
+        data_buffer = image_file.read(data_nums * data_rows * data_cols)
+        data = np.frombuffer(data_buffer, dtype=np.uint8)
+        data = np.reshape(data, (data_nums, data_rows * data_cols)).astype(np.float32)
+        data = data / 255.0
+    with (gzip.open(label_filename, 'rb')) as label_file:
+        label_magic, label_nums = struct.unpack('>II', label_file.read(8))
+        print(f"image label meta info: Magic:{label_magic}, Nums:{label_nums}")
+        label_buffer = label_file.read(label_nums)
+        label = np.frombuffer(label_buffer, dtype=np.uint8)
+    return data, label
     ### END YOUR SOLUTION
 
 
@@ -54,7 +66,11 @@ def softmax_loss(Z, y_one_hot):
         Average softmax loss over the sample. (ndl.Tensor[np.float32])
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    from needle.ops import log, summation, exp, add, multiply, divide_scalar
+    batch_size = Z.shape[0]
+    log_of_sum_exp = log(summation(exp(Z), axes=(-1,)))
+    cor_prediction = summation(multiply(Z, y_one_hot), axes=(-1,))
+    return summation(log_of_sum_exp - cor_prediction) / batch_size
     ### END YOUR SOLUTION
 
 
