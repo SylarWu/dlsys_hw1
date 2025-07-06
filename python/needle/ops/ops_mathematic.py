@@ -14,6 +14,7 @@ import numpy
 BACKEND = "np"
 import numpy as array_api
 
+
 class EWiseAdd(TensorOp):
     def compute(self, a: NDArray, b: NDArray):
         return a + b
@@ -84,6 +85,7 @@ class EWisePow(TensorOp):
         return multiply(out_grad, multiply(b, power(a, add_scalar(b, -1)))), multiply(out_grad, multiply(node, log(a)))
         ### END YOUR SOLUTION
 
+
 def power(a, b):
     return EWisePow()(a, b)
 
@@ -103,7 +105,7 @@ class PowerScalar(TensorOp):
         ### BEGIN YOUR SOLUTION
         a, = node.inputs
         # out_grad * self.scalar * (a ** self.scalar)
-        return multiply(out_grad, mul_scalar(power_scalar(a, self.scalar), self.scalar))
+        return multiply(out_grad, mul_scalar(power_scalar(a, self.scalar - 1), self.scalar))
         ### END YOUR SOLUTION
 
 
@@ -123,7 +125,7 @@ class EWiseDiv(TensorOp):
         ### BEGIN YOUR SOLUTION
         a, b = node.inputs
         # out_grad / b, -(out_grad * node / b)
-        return divide(out_grad, b), mul_scalar(divide(multiply(out_grad, node), b) , -1)
+        return divide(out_grad, b), mul_scalar(divide(multiply(out_grad, node), b), -1)
         ### END YOUR SOLUTION
 
 
@@ -191,6 +193,18 @@ def reshape(a, shape):
     return Reshape(shape)(a)
 
 
+def _to_match_shape(shape, target_shape):
+    if len(shape) == len(target_shape):
+        return [x for x in shape]
+    index = 0
+    match_shape = [1 for _ in range(len(target_shape))]
+    for i, ndim in enumerate(target_shape):
+        if index < len(shape) and ndim % shape[index] == 0:
+            match_shape[i] = shape[index]
+            index += 1
+    return match_shape
+
+
 class BroadcastTo(TensorOp):
     def __init__(self, shape):
         self.shape = shape
@@ -204,8 +218,9 @@ class BroadcastTo(TensorOp):
         ### BEGIN YOUR SOLUTION
         a, = node.inputs
         sum_axes = []
-        for i in range(len(out_grad.shape)):
-            if i >= len(a.shape) or a.shape[i] != out_grad.shape[i]:
+        match_shape = _to_match_shape(a.shape, node.shape)
+        for i in range(len(match_shape)):
+            if match_shape[i] != node.shape[i]:
                 sum_axes.append(i)
         if sum_axes:
             return reshape(summation(out_grad, tuple(sum_axes)), a.shape)
@@ -230,10 +245,7 @@ class Summation(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         a, = node.inputs
-        if self.axes is None:
-            return broadcast_to(out_grad, a.shape)
-        target_axes = set(x if x >= 0 else x + len(a.shape) for x in self.axes)
-        match_shape = [1 if i in target_axes else a.shape[i] for i in range(len(a.shape))]
+        match_shape = _to_match_shape(node.shape, a.shape)
         return broadcast_to(reshape(out_grad, match_shape), a.shape)
         ### END YOUR SOLUTION
 
@@ -328,11 +340,10 @@ class ReLU(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         a, = node.inputs
-        mask = Tensor(array_api.where(a.realize_cached_data() > 0, 1, 0))
+        mask = Tensor(array_api.where(a.realize_cached_data() > 0, 1.0, 0.0))
         return multiply(out_grad, mask)
         ### END YOUR SOLUTION
 
 
 def relu(a):
     return ReLU()(a)
-
