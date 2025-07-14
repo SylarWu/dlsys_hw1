@@ -245,7 +245,11 @@ class Summation(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         a, = node.inputs
-        match_shape = _to_match_shape(node.shape, a.shape)
+        if self.axes is None:
+            axis = tuple(range(len(a.shape)))
+        else:
+            axis = tuple(x if x >= 0 else x + len(a.shape) for x in self.axes)
+        match_shape = tuple([1 if i in axis else n for i, n in enumerate(a.shape)])
         return broadcast_to(reshape(out_grad, match_shape), a.shape)
         ### END YOUR SOLUTION
 
